@@ -296,7 +296,7 @@ export function subscribeToSubmissions(
   if (schoolId) {
     query = query.eq('school_id', schoolId);
   }
-
+  // @ts-ignore
   const subscription = query.on('INSERT', (payload) => {
     const row = payload.new;
     callback({
