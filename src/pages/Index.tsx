@@ -188,7 +188,7 @@ export default function Index() {
       <footer className="bg-gray-900 text-white py-8 px-4">
         <div className="container mx-auto text-center">
           <p className="text-gray-400">
-            © 2024 EcoLearn Platform. Empowering environmental education across India.
+            © 2025 EcoLearn Platform. Empowering environmental education across India.
           </p>
           <p className="text-gray-500 mt-2 text-sm">
             Aligned with NEP 2020 and India's SDG goals
