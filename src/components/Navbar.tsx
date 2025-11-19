@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Leaf, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { getRoleLabel } from '@/lib/userConstants';
@@ -94,6 +94,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar>
+                      {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={`${user.name} avatar`} />}
                       <AvatarFallback className="bg-green-100 text-green-700">
                         {getInitials(user?.name || 'U')}
                       </AvatarFallback>
