@@ -282,7 +282,7 @@ export default function Challenges() {
                           )}
                           {!proofFile && (
                             <p className="text-sm text-red-500 mt-2">
-                              Please upload proof to continue.
+                              Please upload File (Image/PDF) to continue.
                             </p>
                           )}
                         </div>
