@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, CheckCircle, Clock, XCircle, TrendingUp, RefreshCw, BookOpen, Trophy, Target, Plus, Edit, Trash2 } from 'lucide-react';
+import { Users, CheckCircle, Clock, XCircle, TrendingUp, RefreshCw, BookOpen, Trophy, Target, Plus, Edit, Trash2, Download, FileText, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 import { User, ChallengeSubmission, Lesson, Quiz, Challenge, Question } from '@/types';
@@ -273,6 +273,16 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Helper function to check if URL is an image
+  const isImageUrl = (url: string) => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  };
+
+  // Helper function to check if URL is a PDF
+  const isPdfUrl = (url: string) => {
+    return /\.pdf$/i.test(url);
+  };
+
   // Lesson Management Functions
   const handleSaveLesson = () => {
     if (!lessonForm.title || !lessonForm.topic || !lessonForm.content) {
@@ -286,7 +296,7 @@ export default function TeacherDashboard() {
       topic: lessonForm.topic!,
       description: lessonForm.description || '',
       content: lessonForm.content!,
-      imageUrl: lessonForm.imageUrl || '/images/default-lesson.jpg',
+      imageUrl: lessonForm.imageUrl || '/images/Lesson.jpg',
       duration: lessonForm.duration || 15,
       difficulty: lessonForm.difficulty || 'beginner',
       ecoPoints: lessonForm.ecoPoints || 50,
@@ -420,7 +430,7 @@ export default function TeacherDashboard() {
       duration: challengeForm.duration || 7,
       instructions: challengeForm.instructions!,
       verificationRequired: challengeForm.verificationRequired ?? true,
-      imageUrl: challengeForm.imageUrl || '/images/default-challenge.jpg',
+      imageUrl: challengeForm.imageUrl || '/images/Challenge.jpg',
     };
     
     saveChallenge(challenge);
@@ -475,6 +485,61 @@ export default function TeacherDashboard() {
   const removeChallengeInstruction = (index: number) => {
     const instructions = challengeForm.instructions?.filter((_, i) => i !== index) || [];
     setChallengeForm({ ...challengeForm, instructions });
+  };
+
+  // Render proof component
+  const renderProof = (submission: ChallengeSubmission) => {
+    if (!submission.photoUrl) {
+      return (
+        <p className="text-xs text-gray-400 italic">No proof uploaded</p>
+      );
+    }
+
+    if (isImageUrl(submission.photoUrl)) {
+      return (
+        <div className="mt-2">
+          <p className="text-xs text-gray-600 mb-1 flex items-center">
+            <ImageIcon className="h-3 w-3 mr-1" />
+            Proof Image:
+          </p>
+          <img 
+            src={submission.photoUrl} 
+            alt="Challenge proof" 
+            className="max-w-full h-auto max-h-48 rounded border border-gray-200 cursor-pointer hover:opacity-80 transition"
+            onClick={() => window.open(submission.photoUrl, '_blank')}
+          />
+        </div>
+      );
+    } else if (isPdfUrl(submission.photoUrl)) {
+      return (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(submission.photoUrl, '_blank')}
+            className="flex items-center gap-1"
+          >
+            <FileText className="h-4 w-4" />
+            <Download className="h-3 w-3" />
+            Download PDF Proof
+          </Button>
+        </div>
+      );
+    } else {
+      return (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(submission.photoUrl, '_blank')}
+            className="flex items-center gap-1"
+          >
+            <Download className="h-4 w-4" />
+            View Proof
+          </Button>
+        </div>
+      );
+    }
   };
 
   return (
@@ -622,13 +687,14 @@ export default function TeacherDashboard() {
                     pendingSubmissions.map(submission => (
                       <Card key={submission.id}>
                         <CardContent className="pt-6">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex flex-col gap-4">
                             <div className="flex-1">
                               <h3 className="font-semibold text-lg">{submission.userName}</h3>
                               <p className="text-sm text-gray-600 mt-1">{submission.description}</p>
                               <p className="text-xs text-gray-500 mt-2">
                                 Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
                               </p>
+                              {renderProof(submission)}
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -662,15 +728,18 @@ export default function TeacherDashboard() {
                     approvedSubmissions.map(submission => (
                       <Card key={submission.id}>
                         <CardContent className="pt-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="font-semibold">{submission.userName}</h3>
-                              <p className="text-sm text-gray-600">{submission.description}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                Approved: {submission.verifiedAt ? new Date(submission.verifiedAt).toLocaleDateString() : 'N/A'}
-                              </p>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold">{submission.userName}</h3>
+                                <p className="text-sm text-gray-600">{submission.description}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Approved: {submission.verifiedAt ? new Date(submission.verifiedAt).toLocaleDateString() : 'N/A'}
+                                </p>
+                              </div>
+                              <Badge className="bg-green-100 text-green-800">Approved</Badge>
                             </div>
-                            <Badge className="bg-green-100 text-green-800">Approved</Badge>
+                            {renderProof(submission)}
                           </div>
                         </CardContent>
                       </Card>
@@ -685,15 +754,18 @@ export default function TeacherDashboard() {
                     rejectedSubmissions.map(submission => (
                       <Card key={submission.id}>
                         <CardContent className="pt-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="font-semibold">{submission.userName}</h3>
-                              <p className="text-sm text-gray-600">{submission.description}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                Rejected: {submission.verifiedAt ? new Date(submission.verifiedAt).toLocaleDateString() : 'N/A'}
-                              </p>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold">{submission.userName}</h3>
+                                <p className="text-sm text-gray-600">{submission.description}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Rejected: {submission.verifiedAt ? new Date(submission.verifiedAt).toLocaleDateString() : 'N/A'}
+                                </p>
+                              </div>
+                              <Badge variant="destructive">Rejected</Badge>
                             </div>
-                            <Badge variant="destructive">Rejected</Badge>
+                            {renderProof(submission)}
                           </div>
                         </CardContent>
                       </Card>
@@ -798,7 +870,7 @@ export default function TeacherDashboard() {
                           <Input
                             value={lessonForm.imageUrl}
                             onChange={(e) => setLessonForm({ ...lessonForm, imageUrl: e.target.value })}
-                            placeholder="/images/lesson.jpg"
+                            placeholder="/images/Lesson.jpg"
                           />
                         </div>
                       </div>
@@ -1100,7 +1172,7 @@ export default function TeacherDashboard() {
                           <Input
                             value={challengeForm.imageUrl}
                             onChange={(e) => setChallengeForm({ ...challengeForm, imageUrl: e.target.value })}
-                            placeholder="/images/challenge.jpg"
+                            placeholder="/images/photo1763985757.jpg"
                           />
                         </div>
                       </div>

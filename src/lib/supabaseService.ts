@@ -320,3 +320,56 @@ export function subscribeToSubmissions(
   };
 }
 
+/**
+ * Upload proof file to Supabase Storage
+ * @param file - The file to upload (image or PDF)
+ * @param userId - User ID for organizing files
+ * @param challengeId - Challenge ID for organizing files
+ * @returns Public URL of the uploaded file
+ */
+export async function uploadProofFile(
+  file: File,
+  userId: string,
+  challengeId: string
+): Promise<string> {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase is not configured');
+  }
+
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Invalid file type. Only JPG, PNG, and PDF files are allowed.');
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('File size exceeds 5MB limit.');
+  }
+
+  // Create unique file name
+  const timestamp = Date.now();
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}/${challengeId}/${timestamp}.${fileExt}`;
+
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from('challenge-proofs')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (error) {
+    console.error('Error uploading file to Supabase Storage:', error);
+    throw new Error(`Failed to upload file: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('challenge-proofs')
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}

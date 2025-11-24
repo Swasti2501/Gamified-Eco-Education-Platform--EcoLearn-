@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllChallenges, saveSubmission, getAllSubmissions } from '@/lib/storage';
+import { uploadProofFile } from '@/lib/supabaseService';
 import { ChallengeSubmission, Challenge } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Target, Award, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { Target, Award, CheckCircle, Clock, AlertCircle, XCircle, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Challenges() {
@@ -16,6 +19,7 @@ export default function Challenges() {
   const [submissions, setSubmissions] = useState<ChallengeSubmission[]>([]);
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [description, setDescription] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -46,30 +50,70 @@ export default function Challenges() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload JPG, PNG, or PDF files only.');
+        e.target.value = '';
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast.error('File size exceeds 5MB limit. Please choose a smaller file.');
+        e.target.value = '';
+        return;
+      }
+
+      setProofFile(file);
+    }
+  };
+
   const handleSubmit = async (challengeId: string) => {
     if (!description.trim()) {
       toast.error('Please describe how you completed the challenge');
       return;
     }
 
+    if (!proofFile) {
+      toast.error('Please upload proof to continue.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    const submission: ChallengeSubmission = {
-      id: `submission-${Date.now()}`,
-      challengeId,
-      userId: user.id,
-      userName: user.name,
-      schoolId: user.schoolId,
-      submittedAt: new Date().toISOString(),
-      description: description.trim(),
-      status: 'pending',
-    };
-
     try {
+      // Upload proof file to Supabase Storage
+      let proofUrl = '';
+      try {
+        proofUrl = await uploadProofFile(proofFile, user.id, challengeId);
+      } catch (uploadError: any) {
+        toast.error(uploadError.message || 'Failed to upload proof file');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const submission: ChallengeSubmission = {
+        id: `submission-${Date.now()}`,
+        challengeId,
+        userId: user.id,
+        userName: user.name,
+        schoolId: user.schoolId,
+        submittedAt: new Date().toISOString(),
+        description: description.trim(),
+        photoUrl: proofUrl,
+        status: 'pending',
+      };
+
       await saveSubmission(submission);
       await loadSubmissions(); // Reload submissions to update UI
       toast.success('Challenge submitted for verification! Waiting for teacher approval.');
       setDescription('');
+      setProofFile(null);
       setSelectedChallenge(null);
     } catch (error) {
       toast.error('Failed to submit challenge. Please try again.');
@@ -176,6 +220,7 @@ export default function Challenges() {
                     if (!open) {
                       setSelectedChallenge(null);
                       setDescription('');
+                      setProofFile(null);
                     }
                   }}>
                     <DialogTrigger asChild>
@@ -213,12 +258,40 @@ export default function Challenges() {
                             rows={4}
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="proof-upload" className="font-semibold mb-2 block">
+                            Upload Proof: <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="proof-upload"
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf"
+                              onChange={handleFileChange}
+                              className="flex-1"
+                            />
+                            <Paperclip className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Accepted formats: JPG, PNG, PDF (Max 5MB)
+                          </p>
+                          {proofFile && (
+                            <p className="text-sm text-green-600 mt-2">
+                              ✓ Selected: {proofFile.name}
+                            </p>
+                          )}
+                          {!proofFile && (
+                            <p className="text-sm text-red-500 mt-2">
+                              Please upload proof to continue.
+                            </p>
+                          )}
+                        </div>
                         <Button
                           onClick={() => handleSubmit(challenge.id)}
-                          disabled={isSubmitting || !description.trim()}
+                          disabled={isSubmitting || !description.trim() || !proofFile}
                           className="w-full bg-purple-600 hover:bg-purple-700"
                         >
-                          Submit Challenge
+                          {isSubmitting ? 'Submitting...' : 'Submit Challenge'}
                         </Button>
                       </div>
                     </DialogContent>
