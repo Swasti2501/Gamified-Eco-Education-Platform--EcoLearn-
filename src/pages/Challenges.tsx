@@ -260,7 +260,7 @@ export default function Challenges() {
                         </div>
                         <div>
                           <Label htmlFor="proof-upload" className="font-semibold mb-2 block">
-                             Upload Image or Document: <span className="text-red-500">*</span>
+                             Upload File (Image/PDF): <span className="text-red-500">*</span>
                           </Label>
                           <div className="flex items-center gap-2">
                             <Input
