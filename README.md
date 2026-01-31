@@ -1,1 +1,1 @@
-# EcoLearn - Gamified Eco Education Platform
+# EcoLearn - Gamified Eco Educational Platform
